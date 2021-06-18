@@ -1,8 +1,30 @@
-import pygame, math, sys, random
+import pygame, math, sys, random, time
 from pygame.locals import *
+
+NUM_LAPS = 1
+laps = 0
+
+class Checkpoint():
+    def __init__(self, rect, direction, start_finish_line = False):
+        self.rect = pygame.Rect(rect)
+        self.direction = direction
+        self.passed = False
+        self.start_finish_line = start_finish_line
+    def hit_checkpoint(self, direction, car_rect):
+        if self.rect.colliderect(car_rect) and abs(self.direction%360-direction%360)<90:
+            self.passed = True
+        if self.start_finish_line == True:
+            return "lap"
+        else:
+            return "checkpoint"
+
+
+
+    
 
 # INTIALISATION
 screen = pygame.display.set_mode(flags=pygame.FULLSCREEN)
+#screen = pygame.display.set_mode((1200,900))
 car = pygame.image.load('car.png')
 track = pygame.image.load('race_track.png')
 background = pygame.transform.scale(track, (screen.get_width(),screen.get_height()))
@@ -41,6 +63,12 @@ BLACK = (0, 0, 0)
 GREY = (113, 111, 112, 255)
 
 
+checkpoints = []
+checkpoints.append(Checkpoint((800,150,MAX_VEL+1,200), 270, True))
+checkpoints.append(Checkpoint((400,150,MAX_VEL+1,200), 270))
+
+start_time = time.time()
+
 game_running = True
 
 while game_running:
@@ -48,17 +76,25 @@ while game_running:
     clock.tick(30)
     for event in pygame.event.get():
         if hasattr(event, 'key'):
-            if event.key == K_ESCAPE:
+            if event.key == pygame.K_ESCAPE:
+                print("Bye")
                 sys.exit(0)     # quit the game
     if joy:   
         if joystick.get_axis(0) < -0.5:
+            #turn left
             direction += TURN_SPEED
         elif joystick.get_axis(0) > 0.5:
+            #turn right
             direction -= TURN_SPEED
         if joystick.get_button(2) == True:
+            #accelerate
             forward_vel += ACCELERATION
         if joystick.get_button(3) == True:
+            #reverse
             forward_vel -= ACCELERATION
+        if joystick.get_button(5) == True:
+            #brake
+            forward_vel =  forward_vel / 1.2
         
     keys = pygame.key.get_pressed()
     #print(keys)
@@ -69,11 +105,11 @@ while game_running:
         direction += TURN_SPEED
     if keys[pygame.K_UP] == True:
         forward_vel += ACCELERATION
-    if keys[pygame.K_DOWN] == True or  keys[pygame.K_SPACE] == True:
+    if keys[pygame.K_DOWN] == True:
         forward_vel -= ACCELERATION
-    if keys[pygame.K_ESCAPE] == True:
-        sys.exit(0)     # quit the game
-
+    if keys[pygame.K_SPACE] == True:
+        #brake
+        forward_vel =  forward_vel / 1.2
     
     # ..don't go too fast!
     if forward_vel > MAX_VEL:
@@ -112,9 +148,23 @@ while game_running:
             position = (700,200)
             forward_vel = 0
             direction = 270
-        else:
-            print("you live")
             
+    for checkpoint in checkpoints:
+        result = checkpoint.hit_checkpoint(direction,(car_rect))
+        if result == "lap":
+            for other_checkpoint in checkpoints:
+                if not other_checkpoint.passed:
+                    checkpoint.passed = False
+            if checkpoint.passed == True:
+                laps += 1
+                print("LAP!", laps)
+                if laps == NUM_LAPS:
+                    end_time = time.time()
+                    print("You completed the course in:", end_time - start_time)
+                    pygame.time.delay(2000)
+                    game_running = False
+                for any_checkpoint in checkpoints:
+                    any_checkpoint.passed = False
 
     # .. rotate the car image for direction
     rotated_car = pygame.transform.rotate(car, direction)
