@@ -10,6 +10,8 @@ track = pygame.image.load('race_track.png')
 background = pygame.transform.scale(track, (screen.get_width(),screen.get_height()))
 car = pygame.transform.scale(car, (50, 100))
 clock = pygame.time.Clock()
+banana = pygame.image.load('banana.png')
+banana = pygame.transform.scale(banana, (50, 100))
 
 try:
     pygame.joystick.init()
@@ -24,6 +26,7 @@ forward_vel = 0
 direction = 270
 
 position = (700, 200)
+banana.set_rect(banana.get_rect().move(600,600))
 
 TURN_SPEED = 5
 ACCELERATION = 2
@@ -81,19 +84,32 @@ while game_running:
     position = (x, y)
     
     
+    print(banana.get_rect())
     # RENDERING
     screen.blit(background, (0,0))
     
     
     #crashed? Then you die.
     pixel_colour = screen.get_at((int(x),int(y)))
-    if not pixel_colour == GREY:
+   
+    red = pixel_colour[0]
+    green = pixel_colour[1]
+    blue = pixel_colour[2]
+    if not (red in range(GREY[0]-10,GREY[0]+11) and 
+            green in range(GREY[1]-10,GREY[1]+11) and 
+            blue in range(GREY[2]-10,GREY[2]+11)):
         print(pixel_colour)
         #print("You die")
         game_running = False
     else:
         print("you live")
-        
+        car_rect = (x, y, car.get_width(), car.get_height())
+        if banana.get_rect().colliderect(car_rect):
+            print("EEEK!")
+
+
+
+
     # .. rotate the car image for direction
     rotated_car = pygame.transform.rotate(car, direction)
 
@@ -101,6 +117,9 @@ while game_running:
     rotated_car_rect = rotated_car.get_rect()
     rotated_car_rect.center = position
 
+
+
+    screen.blit(banana, banana.get_rect())
     # .. render the car to screen
     screen.blit(rotated_car, rotated_car_rect)
     pygame.display.flip()
