@@ -6,8 +6,8 @@ import time
 from pygame.locals import *
 
 # INTIALISATION
-#SCREEN = pygame.display.set_mode(flags=pygame.FULLSCREEN)
-SCREEN = pygame.display.set_mode((1600,1200))
+SCREEN = pygame.display.set_mode(flags=pygame.FULLSCREEN)
+#SCREEN = pygame.display.set_mode((1900,1000))
 CLOCK = pygame.time.Clock()
 pygame.init()
 game_running = True
@@ -79,7 +79,7 @@ class CollideItem(Sprite):
 
 
 class Car(CollideItem):
-    def __init__(self, image_file, x, y, width, height, velocity, direction, turn_speed, acceleration, max_vel, min_vel, laptimes=[]):
+    def __init__(self, image_file, x, y, width, height, velocity, direction, turn_speed, acceleration, max_vel, min_vel, laptimes=[], name = "Herbie"):
         super().__init__(image_file, x, y, width, height)
         self.velocity = velocity
         self.direction = direction
@@ -90,7 +90,7 @@ class Car(CollideItem):
         self.laptimes = laptimes
         self.rotated_surface = self.surface
         self.rect = self.rotated_surface.get_rect(topleft = (x, y))
-        print(self.rotated_surface)
+        self.name = name
 
     def do_collision(self, car):
         """Enacts a collision between 2 cars
@@ -111,16 +111,35 @@ class Car(CollideItem):
                 car.velocity *= 0.5
     def update_position(self):
         # .. new position based on current x,y, speed and direction
-        direction_in_radians = self.direction * math.pi / 180
-        self.rect.x += self.velocity * math.sin(direction_in_radians)
-        self.rect.y += self.velocity * math.cos(direction_in_radians)
+        direction_in_radians = self.direction % 360 * math.pi / 180
+        self.rect.x += round(self.velocity * math.sin(direction_in_radians))
+        self.rect.y += round(self.velocity * math.cos(direction_in_radians))
         # .. rotate the car image for direction
         self.rotated_surface = pygame.transform.rotate(self.surface, car1.direction)
         # .. position the car on screen
-        #self.rect = self.rotated_surface.get_rect()
-        #self.rect.center = (self.rect.x, self.rect.y)
+        current_center = self.rect.center
+        # current_x = self.rect.x
+        # current_y = self.rect.y
+        self.rect = self.rotated_surface.get_rect()
+        # self.rect.x = current_x
+        # self.rect.y = current_y
+        self.rect.center = current_center
+    def do_track_colour_based_update(self, display):
+        
+        pixel_colour = display.get_at((int(self.rect.center[0]), int(self.rect.center[1])))
+        red = pixel_colour[0]
+        green = pixel_colour[1]
+        blue = pixel_colour[2]
+        if not (red in range(GREY[0]-10, GREY[0]+11) and
+                green in range(GREY[1]-10, GREY[1]+11) and
+                blue in range(GREY[2]-10, GREY[2]+11)):
+
+            self.velocity = 1
+            #self.direction = 270
     def blit(self, display):
         display.blit(self.rotated_surface, self.rotated_surface.get_rect())
+
+
 class Banana(CollideItem):
     def __init__(self, image_file, x, y, width, height, slippiness):
         super().__init__(image_file, x, y, width, height)
@@ -129,13 +148,12 @@ class Banana(CollideItem):
     def do_collision(self, car):
         if self.collides_with(car):
             car.direction += random.randint(-self.slippiness, -self.slippiness)
-
+            return True
+        else: return False
 
 # car setup
-car1 = Car('car.png', 700, 200, 50, 100, 0, 270,
-           TURN_SPEED, ACCELERATION, MAX_VEL, MIN_VEL)
-#blit_rect = car1.rotated_surface.get_rect()
-
+car1 = Car('car.png', 700, 150, 50, 100, 0, 270,
+           TURN_SPEED, ACCELERATION, MAX_VEL, MIN_VEL, [], "Dave")
 
 # setup a banana obstacle
 banana1 = Banana('banana.png', 600, 600, 80, 80, 2)
@@ -147,25 +165,12 @@ track = pygame.image.load('race_track.png')
 track = pygame.transform.scale(
     track, (SCREEN.get_width(), SCREEN.get_height()))
 
-
-
-try:
-    pygame.joystick.init()
-    joystick = pygame.joystick.Joystick(0)
-    joystick.init()
-    joy = True
-except:
-    joy = False
-
-
 checkpoints = []
 checkpoints.append(Checkpoint((800, 150, MAX_VEL+1, 200), 270, True))
 checkpoints.append(Checkpoint((400, 150, MAX_VEL+1, 200), 270))
 
 def do_fastest_lap(car, laptime):
     print(car.name, "has the new fastest lap of", laptime, 'seconds!')
-
-
 
 def test_joy():
     while not input("Press enter to test joystick or n to quit joystick test")=='n':
@@ -176,7 +181,13 @@ def test_joy():
             except Exception as e:
                 continue
                 print(e)
-
+try:
+    pygame.joystick.init()
+    joystick = pygame.joystick.Joystick(0)
+    joystick.init()
+    joy = True
+except:
+    joy = False
 if joy:
     test_joy()
 
@@ -187,7 +198,7 @@ while game_running:
         if hasattr(event, 'key'):
             if event.key == pygame.K_ESCAPE:
                 print("Bye")
-                sys.exit(0)     # quit the game
+                sys.exit(0)     # quit the game'''
     if joy:
         
         if joystick.get_axis(0) < -0.5:
@@ -207,7 +218,11 @@ while game_running:
             car1.velocity = car1.velocity / 1.2
 
     keys = pygame.key.get_pressed()
-    # print(keys)
+
+    if keys[pygame.K_ESCAPE] == True:
+                print("Bye")
+                game_running = False     # quit the game
+                break
     if keys[pygame.K_RIGHT] == True:
         print("Hi")
         car1.direction -= TURN_SPEED
@@ -221,35 +236,19 @@ while game_running:
         # brake
         car1.velocity = car1.velocity / 1.2
 
-    # ..don't go too fast!
+    # ..don't go too fast forwards!
     if car1.velocity > MAX_VEL:
         car1.velocity = MAX_VEL
+    # or in reverse!
     elif car1.velocity < MIN_VEL:
         car1.velocity = MIN_VEL
-
-
-
 
     # RENDERING images to the screen using the blit function
     SCREEN.blit(track, (0, 0))
     SCREEN.blit(banana1.surface, banana1.rect)
 
-    #banana1.do_collision(car1)
-
-    # crashed? Then you die.
-    pixel_colour = SCREEN.get_at((int(car1.rect.x), int(car1.rect.y)))
-    red = pixel_colour[0]
-    green = pixel_colour[1]
-    blue = pixel_colour[2]
-    if not (red in range(GREY[0]-10, GREY[0]+11) and
-            green in range(GREY[1]-10, GREY[1]+11) and
-            blue in range(GREY[2]-10, GREY[2]+11)):
-        print(pixel_colour)
-        print("You die")
-        position = (700, 200)
-        car1.rect.x, car1.rect.y = 700, 200
-        car1.velocity = 0
-        car1.direction = 270
+    if not banana1.do_collision(car1):
+        car1.do_track_colour_based_update(SCREEN)
 
     for checkpoint in checkpoints:
         result = checkpoint.hit_checkpoint(car1.direction, car1.rect)
@@ -271,10 +270,6 @@ while game_running:
                     game_running = False
                 for any_checkpoint in checkpoints:
                     any_checkpoint.passed = False
-            
-
-    
-
     # .. render the car to screen
     car1.update_position()
     #car1.blit(SCREEN)
@@ -282,4 +277,5 @@ while game_running:
     SCREEN.blit(car1.rotated_surface, car1.rect)
     pygame.display.flip()
 
+pygame.quit()
 sys.exit(0)
