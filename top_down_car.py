@@ -7,8 +7,8 @@ import copy
 from pygame.locals import *
 
 # INTIALISATION
-# SCREEN = pygame.display.set_mode(flags=pygame.FULLSCREEN)
-SCREEN = pygame.display.set_mode((1900,1000))
+SCREEN = pygame.display.set_mode(flags=pygame.FULLSCREEN)
+#SCREEN = pygame.display.set_mode((1900,1000))
 CLOCK = pygame.time.Clock()
 pygame.init()
 game_running = True
