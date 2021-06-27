@@ -3,6 +3,7 @@ import math
 import sys
 import random
 import time
+import copy
 from pygame.locals import *
 
 # INTIALISATION
@@ -79,7 +80,7 @@ class CollideItem(Sprite):
 
 
 class Car(CollideItem):
-    def __init__(self, image_file, x, y, width, height, velocity, direction, turn_speed, acceleration, max_vel, min_vel, laptimes=[], name = "Herbie"):
+    def __init__(self, image_file, x, y, width, height, velocity, direction, turn_speed, acceleration, max_vel, min_vel, name, checkpoints):
         super().__init__(image_file, x, y, width, height)
         self.velocity = velocity
         self.direction = direction
@@ -87,11 +88,11 @@ class Car(CollideItem):
         self.acceleration = acceleration
         self.max_vel = max_vel
         self.min_vel = min_vel
-        self.laptimes = laptimes
+        self.laptimes = []
         self.rotated_surface = self.surface
         self.rect = self.rotated_surface.get_rect(topleft = (x, y))
         self.name = name
-
+        self.checkpoints = checkpoints
     def do_collision(self, car):
         """Enacts a collision between 2 cars
 
@@ -124,8 +125,7 @@ class Car(CollideItem):
         # self.rect.x = current_x
         # self.rect.y = current_y
         self.rect.center = current_center
-    def do_track_colour_based_update(self, display):
-        
+    def do_track_colour_based_update(self, display):        
         pixel_colour = display.get_at((int(self.rect.center[0]), int(self.rect.center[1])))
         red = pixel_colour[0]
         green = pixel_colour[1]
@@ -136,6 +136,9 @@ class Car(CollideItem):
 
             self.velocity = 1
             #self.direction = 270
+    def check_checkpoints(self):
+        
+        pass
     def blit(self, display):
         display.blit(self.rotated_surface, self.rotated_surface.get_rect())
 
@@ -151,9 +154,13 @@ class Banana(CollideItem):
             return True
         else: return False
 
+checkpoints = []
+checkpoints.append(Checkpoint((800, 150, MAX_VEL+1, 200), 270, True))
+checkpoints.append(Checkpoint((400, 150, MAX_VEL+1, 200), 270))
+
 # car setup
 car1 = Car('car.png', 700, 150, 50, 100, 0, 270,
-           TURN_SPEED, ACCELERATION, MAX_VEL, MIN_VEL, [], "Dave")
+           TURN_SPEED, ACCELERATION, MAX_VEL, MIN_VEL, "Dave", copy.deepcopy(checkpoints))
 
 # setup a banana obstacle
 banana1 = Banana('banana.png', 600, 600, 80, 80, 2)
@@ -165,9 +172,7 @@ track = pygame.image.load('race_track.png')
 track = pygame.transform.scale(
     track, (SCREEN.get_width(), SCREEN.get_height()))
 
-checkpoints = []
-checkpoints.append(Checkpoint((800, 150, MAX_VEL+1, 200), 270, True))
-checkpoints.append(Checkpoint((400, 150, MAX_VEL+1, 200), 270))
+
 
 def do_fastest_lap(car, laptime):
     print(car.name, "has the new fastest lap of", laptime, 'seconds!')
@@ -220,11 +225,9 @@ while game_running:
     keys = pygame.key.get_pressed()
 
     if keys[pygame.K_ESCAPE] == True:
-                print("Bye")
                 game_running = False     # quit the game
                 break
     if keys[pygame.K_RIGHT] == True:
-        print("Hi")
         car1.direction -= TURN_SPEED
     if keys[pygame.K_LEFT] == True:
         car1.direction += TURN_SPEED
@@ -235,7 +238,6 @@ while game_running:
     if keys[pygame.K_SPACE] == True:
         # brake
         car1.velocity = car1.velocity / 1.2
-
     # ..don't go too fast forwards!
     if car1.velocity > MAX_VEL:
         car1.velocity = MAX_VEL
@@ -260,7 +262,8 @@ while game_running:
                 laps += 1
                 print("LAP!", laps)
                 now = time.time()
-                lap_time = now - sum(car1.laptimes)
+                race_time = now - START_TIME
+                lap_time = race_time - sum(car1.laptimes)
                 car1.laptimes.append(lap_time)
                 if lap_time == min(car1.laptimes):
                     do_fastest_lap(car1, lap_time)
