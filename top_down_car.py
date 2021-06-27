@@ -4,6 +4,7 @@ import sys
 import random
 import time
 import copy
+
 from pygame.locals import *
 
 # INTIALISATION
@@ -21,7 +22,11 @@ MAX_VEL = 20
 MIN_VEL = -0.5 * MAX_VEL
 BLACK = (0, 0, 0)
 GREY = (113, 111, 112, 255)
+WHITE = (255,255,255)
+TRANSPARENT = (0,0,0,0)
+DEFAULT_TEXT_SIZE = 20
 
+display_text = "Not-So-Super Sprint"
 
 class Checkpoint():
     """Checkpoint class to encapsulate info and functionality about checkpoints in a race circuit.
@@ -62,6 +67,9 @@ class Checkpoint():
 
 
 class Sprite():
+    """Holds surface and rect that relate to a pygame actor.
+    """
+
     def __init__(self, image_file, x, y, width, height):
         self.surface = pygame.image.load(image_file)
         self.surface = pygame.transform.scale(self.surface, (width, height))
@@ -69,6 +77,12 @@ class Sprite():
 
 
 class CollideItem(Sprite):
+    """Subclass of Sprite that has behaviour related to collisions with other CollideItems
+
+    Args:
+        Sprite (Sprite): Superclass.
+    """
+
     def __init__(self, image_file, x, y, width, height):
         super().__init__(image_file, x, y, width, height)
 
@@ -80,6 +94,7 @@ class CollideItem(Sprite):
 
 
 class Car(CollideItem):
+
     def __init__(self, image_file, x, y, width, height, velocity, direction, turn_speed, acceleration, max_vel, min_vel, name, checkpoints):
         super().__init__(image_file, x, y, width, height)
         self.velocity = velocity
@@ -91,9 +106,10 @@ class Car(CollideItem):
         self.laps = 0
         self.laptimes = []
         self.rotated_surface = self.surface
-        self.rect = self.rotated_surface.get_rect(topleft = (x, y))
+        self.rect = self.rotated_surface.get_rect(topleft=(x, y))
         self.name = name
         self.checkpoints = checkpoints
+
     def do_collision(self, car):
         """Enacts a collision between 2 cars
 
@@ -111,13 +127,15 @@ class Car(CollideItem):
                 # reduce velocities
                 self.velocity *= 0.5
                 car.velocity *= 0.5
+
     def update_position(self):
         # .. new position based on current x,y, speed and direction
         direction_in_radians = self.direction % 360 * math.pi / 180
         self.rect.x += round(self.velocity * math.sin(direction_in_radians))
         self.rect.y += round(self.velocity * math.cos(direction_in_radians))
         # .. rotate the car image for direction
-        self.rotated_surface = pygame.transform.rotate(self.surface, car1.direction)
+        self.rotated_surface = pygame.transform.rotate(
+            self.surface, car1.direction)
         # .. position the car on screen
         current_center = self.rect.center
         # current_x = self.rect.x
@@ -126,8 +144,10 @@ class Car(CollideItem):
         # self.rect.x = current_x
         # self.rect.y = current_y
         self.rect.center = current_center
-    def do_track_colour_based_update(self, display):        
-        pixel_colour = display.get_at((int(self.rect.center[0]), int(self.rect.center[1])))
+
+    def do_track_colour_based_update(self, display):
+        pixel_colour = display.get_at(
+            (int(self.rect.center[0]), int(self.rect.center[1])))
         red = pixel_colour[0]
         green = pixel_colour[1]
         blue = pixel_colour[2]
@@ -137,6 +157,7 @@ class Car(CollideItem):
 
             self.velocity = 1
             #self.direction = 270
+
     def check_checkpoints(self, start_time, now_time, race_time):
         for checkpoint in self.checkpoints:
             result = checkpoint.hit_checkpoint(self.direction, self.rect)
@@ -146,8 +167,6 @@ class Car(CollideItem):
                         checkpoint.passed = False
                 if checkpoint.passed == True:
                     self.laps += 1
-                    print(self.name,"completes lap", self.laps)
-                    
                     lap_time = race_time - sum(self.laptimes)
                     self.laptimes.append(lap_time)
                     if lap_time == min(self.laptimes):
@@ -160,11 +179,13 @@ class Car(CollideItem):
                         any_checkpoint.passed = False
         # False means race isn't over
         return False
+
     def blit(self, display):
         display.blit(self.rotated_surface, self.rotated_surface.get_rect())
 
 
 class Banana(CollideItem):
+
     def __init__(self, image_file, x, y, width, height, slippiness):
         super().__init__(image_file, x, y, width, height)
         self.slippiness = slippiness
@@ -173,8 +194,13 @@ class Banana(CollideItem):
         if self.collides_with(car):
             car.direction += random.randint(-self.slippiness, -self.slippiness)
             return True
-        else: return False
+        else:
+            return False
 
+# SO WE CAN DISPLAY TEXT INFO. Set display_text and blit text in the game loop
+font = pygame.font.Font('freesansbold.ttf', DEFAULT_TEXT_SIZE)
+
+#checkpoints to ensure no cheating!
 checkpoints = []
 checkpoints.append(Checkpoint((800, 150, MAX_VEL+1, 200), 270, True))
 checkpoints.append(Checkpoint((400, 150, MAX_VEL+1, 200), 270))
@@ -187,23 +213,25 @@ car1 = Car('car.png', 700, 150, 50, 100, 0, 270,
 banana1 = Banana('banana.png', 600, 600, 80, 80, 2)
 
 # track stuff TODO OOP it
-NUM_LAPS = 3
+NUM_LAPS = 2
 laps = 0
 track = pygame.image.load('race_track.png')
 track = pygame.transform.scale(
     track, (SCREEN.get_width(), SCREEN.get_height()))
-
-
+display_text = f"Laps: {NUM_LAPS} "
 
 def do_fastest_lap(car, laptime):
-    print(car.name, "has the new fastest lap of", laptime, 'seconds!')
+    global display_text
+    display_text += f" Fastest lap {car.name} : {laptime:.2f}s "
 
 def do_win_screen(car):
-    end_string = car.name + " won the race in " + str(sum(car.laptimes)) + " seconds, with a fastest lap of " + str(min(car.laptimes)) + "!\n"
-    input(end_string + " Press enter to quit... ")
+    global display_text
+    end_string = f"{car.name} won the race in {(sum(car.laptimes)):.2f} s. (Fastest lap: {min(car.laptimes):.2f}s) "
+    display_text += end_string
 
-def test_joy():
-    while not input("Press enter to test joystick or n to quit joystick test")=='n':
+
+def test_joy(joystick):
+    while not input("Press enter to test joystick or n to quit joystick test") == 'n':
         for num in range(14):
             try:
                 if joystick.get_button(num):
@@ -211,6 +239,8 @@ def test_joy():
             except Exception as e:
                 continue
                 print(e)
+
+
 try:
     pygame.joystick.init()
     joystick = pygame.joystick.Joystick(0)
@@ -218,8 +248,9 @@ try:
     joy = True
 except:
     joy = False
+
 if joy:
-    test_joy()
+    test_joy(joystick)
 
 while game_running:
     # wait for 30 frames per second
@@ -230,7 +261,7 @@ while game_running:
                 print("Bye")
                 sys.exit(0)     # quit the game'''
     if joy:
-        
+
         if joystick.get_axis(0) < -0.5:
             # turn left
             car1.direction += TURN_SPEED
@@ -250,8 +281,8 @@ while game_running:
     keys = pygame.key.get_pressed()
 
     if keys[pygame.K_ESCAPE] == True:
-                game_running = False     # quit the game
-                break
+        game_running = False     # quit the game
+        break
     if keys[pygame.K_RIGHT] == True:
         car1.direction -= TURN_SPEED
     if keys[pygame.K_LEFT] == True:
@@ -279,16 +310,18 @@ while game_running:
 
     now = time.time()
     race_time = now - START_TIME
-    if car1.check_checkpoints(START_TIME,now, race_time):
+    if car1.check_checkpoints(START_TIME, now, race_time):
         do_win_screen(car1)
         game_running = False
-        break
-    
-    car1.update_position()
-    #car1.blit(SCREEN)
-    #blit_rect = car1.rotated_surface.get_rect()
-    SCREEN.blit(car1.rotated_surface, car1.rect)
-    pygame.display.flip()
 
+    car1.update_position()
+    text = font.render(display_text, True, WHITE, TRANSPARENT)
+    text.get_rect().topleft = (0,0)
+    SCREEN.blit(car1.rotated_surface, car1.rect)
+    SCREEN.blit(text, text.get_rect())
+
+    pygame.display.flip()
+    if not game_running:
+        pygame.time.wait(10000)
 pygame.quit()
 sys.exit(0)
