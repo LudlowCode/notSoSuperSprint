@@ -7,8 +7,8 @@ import copy
 from pygame.locals import *
 
 # INTIALISATION
-SCREEN = pygame.display.set_mode(flags=pygame.FULLSCREEN)
-#SCREEN = pygame.display.set_mode((1900,1000))
+# SCREEN = pygame.display.set_mode(flags=pygame.FULLSCREEN)
+SCREEN = pygame.display.set_mode((1900,1000))
 CLOCK = pygame.time.Clock()
 pygame.init()
 game_running = True
@@ -88,6 +88,7 @@ class Car(CollideItem):
         self.acceleration = acceleration
         self.max_vel = max_vel
         self.min_vel = min_vel
+        self.laps = 0
         self.laptimes = []
         self.rotated_surface = self.surface
         self.rect = self.rotated_surface.get_rect(topleft = (x, y))
@@ -136,9 +137,29 @@ class Car(CollideItem):
 
             self.velocity = 1
             #self.direction = 270
-    def check_checkpoints(self):
-        
-        pass
+    def check_checkpoints(self, start_time, now_time, race_time):
+        for checkpoint in self.checkpoints:
+            result = checkpoint.hit_checkpoint(self.direction, self.rect)
+            if result == "lap":
+                for other_checkpoint in self.checkpoints:
+                    if not other_checkpoint.passed:
+                        checkpoint.passed = False
+                if checkpoint.passed == True:
+                    self.laps += 1
+                    print(self.name,"completes lap", self.laps)
+                    
+                    lap_time = race_time - sum(self.laptimes)
+                    self.laptimes.append(lap_time)
+                    if lap_time == min(self.laptimes):
+                        do_fastest_lap(self, lap_time)
+                    if self.laps == NUM_LAPS:
+                        # Race is complete so return True
+                        return True
+
+                    for any_checkpoint in self.checkpoints:
+                        any_checkpoint.passed = False
+        # False means race isn't over
+        return False
     def blit(self, display):
         display.blit(self.rotated_surface, self.rotated_surface.get_rect())
 
@@ -176,6 +197,10 @@ track = pygame.transform.scale(
 
 def do_fastest_lap(car, laptime):
     print(car.name, "has the new fastest lap of", laptime, 'seconds!')
+
+def do_win_screen(car):
+    end_string = car.name + " won the race in " + str(sum(car.laptimes)) + " seconds, with a fastest lap of " + str(min(car.laptimes)) + "!\n"
+    input(end_string + " Press enter to quit... ")
 
 def test_joy():
     while not input("Press enter to test joystick or n to quit joystick test")=='n':
@@ -252,28 +277,13 @@ while game_running:
     if not banana1.do_collision(car1):
         car1.do_track_colour_based_update(SCREEN)
 
-    for checkpoint in checkpoints:
-        result = checkpoint.hit_checkpoint(car1.direction, car1.rect)
-        if result == "lap":
-            for other_checkpoint in checkpoints:
-                if not other_checkpoint.passed:
-                    checkpoint.passed = False
-            if checkpoint.passed == True:
-                laps += 1
-                print("LAP!", laps)
-                now = time.time()
-                race_time = now - START_TIME
-                lap_time = race_time - sum(car1.laptimes)
-                car1.laptimes.append(lap_time)
-                if lap_time == min(car1.laptimes):
-                    do_fastest_lap(car1, lap_time)
-                if laps == NUM_LAPS:
-                    print("You completed the course in:", now - START_TIME)
-                    pygame.time.delay(2000)
-                    game_running = False
-                for any_checkpoint in checkpoints:
-                    any_checkpoint.passed = False
-    # .. render the car to screen
+    now = time.time()
+    race_time = now - START_TIME
+    if car1.check_checkpoints(START_TIME,now, race_time):
+        do_win_screen(car1)
+        game_running = False
+        break
+    
     car1.update_position()
     #car1.blit(SCREEN)
     #blit_rect = car1.rotated_surface.get_rect()
