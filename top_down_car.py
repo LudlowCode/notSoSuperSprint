@@ -228,7 +228,10 @@ class Car(CollideItem):
             self.reverse()
 
     def react_to_controls(self, keys):
-        if self.controls.joystick == None:
+        if self.controls == None:
+            print("No controls")
+            return
+        elif self.controls.joystick == None:
             self.react_to_keys(keys)
         else:
             self.react_to_joystick()
@@ -422,83 +425,91 @@ def controls_setup(joysticks: List[pygame.joystick.Joystick], car: Car, screen: 
                         if event.key == pygame.K_y:
                             joystick = joysticks[joystick_num]
                             controls = Controls(joystick, None, None, None, None, None)
-                            screen.fill(BLACK)
-                            show_text("Push left", screen)
-                            pygame.display.update()
-                            control_found = False
-                            while not control_found:
-                                for i in range(joystick.get_numaxes()):
-                                    print(joystick.get_axis(i))
-                                    if joystick.get_axis(i) < -0.5 or joystick.get_axis(i)>0.5:
-                                        controls.left = i
-                                        controls.right = i
-                                        control_found = True
-                            screen.fill(BLACK)
-                            show_text("Push accelerate", screen)
-                            pygame.display.update()
-                            control_found = False
-                            while not control_found:
-                                for i in range(joystick.get_numbuttons()):
-                                    if joystick.get_button(i) == True:
-                                        controls.accelerate = i
-                            screen.fill(BLACK)
-                            show_text("Push brake", screen)
-                            pygame.display.update()
-                            control_found = False
-                            while not control_found:
-                                for i in range(joystick.get_numbuttons()):
-                                    if joystick.get_button(i) == True:
-                                        controls.brake = i
-                            screen.fill(BLACK)
-                            show_text("Push reverse", screen)
-                            pygame.display.update()
-                            control_found = False
-                            while not control_found:
-                                for i in range(joystick.get_numbuttons()):
-                                    if joystick.get_button(i) == True:
-                                        controls.reverse = i
-                            return
+        screen.fill(BLACK)
+        show_text("Push left", screen)
+        pygame.display.update()
+        control_found = False
+        while not control_found:
+            for event in pygame.event.get():
+                for i in range(joystick.get_numaxes()):
+                    print(joystick.get_axis(i))
+                    if joystick.get_axis(i) < -0.5 or joystick.get_axis(i)>0.5:
+                        controls.left = i
+                        controls.right = i
+                        control_found = True
+        screen.fill(BLACK)
+        show_text("Push accelerate", screen)
+        pygame.display.update()
+        control_found = False
+        while not control_found:
+            for event in pygame.event.get():
+                for i in range(joystick.get_numbuttons()):
+                    if joystick.get_button(i) == True:
+                        controls.accelerate = i
+                        control_found = True
+            
+        screen.fill(BLACK)
+        show_text("Push brake", screen)
+        pygame.display.update()
+        control_found = False
+        while not control_found:
+            for event in pygame.event.get():
+                for i in range(joystick.get_numbuttons()):
+                    if joystick.get_button(i) == True:
+                        controls.brake = i
+                        control_found = True
+        screen.fill(BLACK)
+        show_text("Push reverse", screen)
+        pygame.display.update()
+        control_found = False
+        while not control_found:
+            for event in pygame.event.get():
+                for i in range(joystick.get_numbuttons()):
+                    if joystick.get_button(i) == True:
+                        controls.reverse = i
+                        control_found = True
+        return
 
-            """keys = pygame.key.get_pressed()
-            if keys[pygame.K_n] or keys[pygame.K_y]:
-                valid_input_given = True
-                if keys[pygame.K_y]:
-                    controls = Controls(joystick, None, None, None, None, None)
-                    screen.fill(BLACK)
-                    show_text("Push left", screen)
-                    pygame.display.update()
-                    control_found = False
-                    while not control_found:
-                        for i in range(joystick.get_numaxes()):
-                            if joystick.get_axis(i) < -0.5:
-                                controls.left = i
-                                controls.right = i
-                                control_found = True
-                    screen.fill(BLACK)
-                    show_text("Push accelerate", screen)
-                    pygame.display.update()
-                    control_found = False
-                    while not control_found:
-                        for i in range(joystick.get_numbuttons()):
-                            if joystick.get_button(i) == True:
-                                controls.accelerate = i
-                    screen.fill(BLACK)
-                    show_text("Push brake", screen)
-                    pygame.display.update()
-                    control_found = False
-                    while not control_found:
-                        for i in range(joystick.get_numbuttons()):
-                            if joystick.get_button(i) == True:
-                                controls.brake = i
-                    screen.fill(BLACK)
-                    show_text("Push reverse", screen)
-                    pygame.display.update()
-                    control_found = False
-                    while not control_found:
-                        for i in range(joystick.get_numbuttons()):
-                            if joystick.get_button(i) == True:
-                                controls.reverse = i
-                    return"""
+        """keys = pygame.key.get_pressed()
+        if keys[pygame.K_n] or keys[pygame.K_y]:
+            valid_input_given = True
+            if keys[pygame.K_y]:
+                controls = Controls(joystick, None, None, None, None, None)
+                screen.fill(BLACK)
+                show_text("Push left", screen)
+                pygame.display.update()
+                control_found = False
+                while not control_found:
+                    for i in range(joystick.get_numaxes()):
+                        if joystick.get_axis(i) < -0.5:
+                            controls.left = i
+                            controls.right = i
+                            control_found = True
+                screen.fill(BLACK)
+                show_text("Push accelerate", screen)
+                pygame.display.update()
+                control_found = False
+                while not control_found:
+                    for i in range(joystick.get_numbuttons()):
+                        if joystick.get_button(i) == True:
+                            controls.accelerate = i
+                screen.fill(BLACK)
+                show_text("Push brake", screen)
+                pygame.display.update()
+                control_found = False
+                while not control_found:
+                    for i in range(joystick.get_numbuttons()):
+                        if joystick.get_button(i) == True:
+                            controls.brake = i
+                screen.fill(BLACK)
+                show_text("Push reverse", screen)
+                pygame.display.update()
+                control_found = False
+                while not control_found:
+                    for i in range(joystick.get_numbuttons()):
+                        if joystick.get_button(i) == True:
+                            controls.reverse = i
+                return"""
 
     controls = Controls(None, None, None, None, None, None)
     screen.fill(BLACK)
@@ -550,20 +561,45 @@ def controls_setup(joysticks: List[pygame.joystick.Joystick], car: Car, screen: 
     return
 
 
-def test_joystick(joystick):
+def test_joystick():
     """For command-line testing of joystick outside of game
 
     Args:
         joystick (pygame.joystick.Joystick): A joystick
     """
-    while not input("Press enter to test joystick or n to quit joystick test") == 'n':
-        for num in range(14):
-            try:
-                if joystick.get_button(num):
-                    print(num)
-            except Exception as e:
-                continue
-                print(e)
+    joysticks = []
+    try:
+        pygame.joystick.init()
+        for i in range(pygame.joystick.get_count()):
+            joystick = pygame.joystick.Joystick(i)
+            joystick.init()
+            joysticks.append(joystick)
+        print(joysticks)
+    except Exception as e:
+        # pass
+        print(e)
+    # while not input("Press enter to test joystick or n to quit joystick test") == 'n':
+    while True:
+        for event in pygame.event.get(): # User did something.
+            if event.type == pygame.QUIT: # If user clicked close.
+                done = True # Flag that we are done so we exit this loop.
+            elif event.type == pygame.JOYBUTTONDOWN:
+                print("Joystick button pressed.")
+            elif event.type == pygame.JOYBUTTONUP:
+                print("Joystick button released.")
+        for joystick in joysticks:
+            for num in range(joystick.get_numbuttons()):
+                try:
+                    if joystick.get_button(num) == 1:
+                        print(num)
+                except Exception as e:
+                    #continue
+                    print(e)
+        for axis in range(joystick.get_numaxes()):
+            axis_value = joystick.get_axis(axis)
+            if abs(axis_value) > 0.5: 
+                print(f"Axis {axis} is {axis_value}")
+
 
 
 def customise_controls(cars, screen):
@@ -649,7 +685,8 @@ track = Track('race_track.png', 0, 0, SCREEN.get_width(),
 race = Race(track, cars, 2)
 
 # setup controls
-default_controls(cars)
+# test_joystick()
+# default_controls(cars)
 customise_controls(cars, SCREEN)
 
 start_game_loop(SCREEN, race, cars)
