@@ -1,4 +1,5 @@
-from typing import Type
+from typing import Any, Type, List, Sequence, Optional
+from pygame import Rect
 import pygame
 import math
 import sys
@@ -37,25 +38,24 @@ DEFAULT_FONT = pygame.font.Font('freesansbold.ttf', DEFAULT_TEXT_SIZE)
 # CLASSES:
 
 
-class Checkpoint():
+class Checkpoint:
     """Checkpoint class to encapsulate info and functionality about checkpoints in a race circuit.
     """
-
-    def __init__(self, rect, direction, start_finish_line=False):
+    def __init__(self, rect: Rect, direction: int, start_finish_line: bool) -> None:
         """Constructor for a checkpoint.
 
         Args:
-            rect (pygame.Rect): Holds the pygame.Rect that has x, y, width, height of the checkpoint.
+            rect (Rect): Holds the pygame.Rect that has x, y, width, height of the checkpoint.
             direction (int): The optimal angle to pass through the checkpoint. A pass through that is > 90 deg different won't cound
-            start_finish_line (bool, optional): Whether the checkpoint is the S/F line. Defaults to False.
+            start_finish_line (bool): Whether the checkpoint is the S/F line.
         """
-        self.rect = pygame.Rect(rect)
+        self.rect: Rect = Rect(rect)
         self.direction = direction
         self.passed = False
         self.start_finish_line = start_finish_line
 
-    def hit_checkpoint(self, direction, car_rect):
-        """Checks whether hte car has passed through the checkpoint. Stes passed to true if car has passed throgh in the 
+    def hit_checkpoint(self, direction, car_rect: pygame.Rect):
+        """Checks whether hte car has passed through the checkpoint. Passed to true if car has passed through in the
         correct direction.
 
         Args:
@@ -76,7 +76,7 @@ class Checkpoint():
             return "checkpoint"
 
 
-class Sprite():
+class Sprite:
     """Holds surface and rect that relate to a pygame actor.
     """
 
@@ -103,7 +103,7 @@ class CollideItem(Sprite):
             return False
 
 
-class Controls():
+class Controls:
     def __init__(self, joystick: pygame.joystick.Joystick, left, right, accelerate, brake, reverse) -> None:
         self.joystick = joystick
         self.left = left
@@ -115,7 +115,7 @@ class Controls():
 
 class Car(CollideItem):
 
-    def __init__(self, image_file, x, y, width, height, velocity, direction, turn_speed, acceleration, max_vel, min_vel, name, checkpoints: list[Checkpoint], controls: Controls):
+    def __init__(self, image_file, x, y, width, height, velocity, direction, turn_speed, acceleration, max_vel, min_vel, name, checkpoints: List[Checkpoint], controls: Optional[Controls]):
         super().__init__(image_file, x, y, width, height)
         self.velocity = velocity
         self.direction = direction
@@ -124,7 +124,7 @@ class Car(CollideItem):
         self.max_vel = max_vel
         self.min_vel = min_vel
         self.laps = 0
-        self.laptimes = []
+        self.laptimes:List[float] = []
         self.rotated_surface = self.surface
         self.rect = self.rotated_surface.get_rect(topleft=(x, y))
         self.name = name
@@ -321,12 +321,12 @@ class Track(Sprite):
 
 
 class Race():
-    def __init__(self, track: Track, cars: list[Car], num_laps: int) -> None:
+    def __init__(self, track: Track, cars: List[Car], num_laps: int) -> None:
         self.track = track
         self.cars = cars
         self.num_laps = num_laps
         # To hold [car.name:str, laptime:float]
-        self.fastest_lap = []
+        self.fastest_lap:List[Any] = []
         self.display_text = f"Laps: {self.num_laps}"
 
     def do_fastest_lap(self, car, laptime):
@@ -347,7 +347,7 @@ def start_game_loop(screen, race, cars):
 
     Args:
         screen (pygame.Surface): The background to blit stuff onto
-        race (Race): The race holds info about the race, including the track, checkpoints, num laps etc. 
+        race (Race): The race holds info about the race, including the track, checkpoints, num laps etc.
         cars (list[Car]): The cars in the race
     """
     game_running = True
@@ -407,15 +407,59 @@ def show_text(message, screen):
     pygame.display.update(text.get_rect())
 
 
-def controls_setup(joysticks: list[pygame.joystick.Joystick], car, screen):
+def controls_setup(joysticks: List[pygame.joystick.Joystick], car: Car, screen: pygame.Surface):
     # This feels horrible. TODO: make better
-    for joystick in range(len(joysticks)):
+    for joystick_num in range(len(joysticks)):
         screen.fill(BLACK)
-        show_text(f"Use joystick {joystick}? (y/n) ")
+        show_text(f"Use joystick {joystick_num}? (y/n) ,", screen)
         pygame.display.update()
         valid_input_given = False
         while not valid_input_given:
-            keys = pygame.event.get_pressed()
+            for event in pygame.event.get():
+                if hasattr(event, 'key'):
+                    if event.key == pygame.K_y or event.key == pygame.K_n:
+                        valid_input_given = True
+                        if event.key == pygame.K_y:
+                            joystick = joysticks[joystick_num]
+                            controls = Controls(joystick, None, None, None, None, None)
+                            screen.fill(BLACK)
+                            show_text("Push left", screen)
+                            pygame.display.update()
+                            control_found = False
+                            while not control_found:
+                                for i in range(joystick.get_numaxes()):
+                                    print(joystick.get_axis(i))
+                                    if joystick.get_axis(i) < -0.5 or joystick.get_axis(i)>0.5:
+                                        controls.left = i
+                                        controls.right = i
+                                        control_found = True
+                            screen.fill(BLACK)
+                            show_text("Push accelerate", screen)
+                            pygame.display.update()
+                            control_found = False
+                            while not control_found:
+                                for i in range(joystick.get_numbuttons()):
+                                    if joystick.get_button(i) == True:
+                                        controls.accelerate = i
+                            screen.fill(BLACK)
+                            show_text("Push brake", screen)
+                            pygame.display.update()
+                            control_found = False
+                            while not control_found:
+                                for i in range(joystick.get_numbuttons()):
+                                    if joystick.get_button(i) == True:
+                                        controls.brake = i
+                            screen.fill(BLACK)
+                            show_text("Push reverse", screen)
+                            pygame.display.update()
+                            control_found = False
+                            while not control_found:
+                                for i in range(joystick.get_numbuttons()):
+                                    if joystick.get_button(i) == True:
+                                        controls.reverse = i
+                            return
+
+            """keys = pygame.key.get_pressed()
             if keys[pygame.K_n] or keys[pygame.K_y]:
                 valid_input_given = True
                 if keys[pygame.K_y]:
@@ -454,7 +498,7 @@ def controls_setup(joysticks: list[pygame.joystick.Joystick], car, screen):
                         for i in range(joystick.get_numbuttons()):
                             if joystick.get_button(i) == True:
                                 controls.reverse = i
-                    return
+                    return"""
 
     controls = Controls(None, None, None, None, None, None)
     screen.fill(BLACK)
@@ -538,7 +582,7 @@ def customise_controls(cars, screen):
     pygame.time.wait(500)
 
 
-def default_controls(cars: list[Car]):
+def default_controls(cars: List[Car]):
     control_sets = [{
         'left': pygame.K_LEFT,
         'right': pygame.K_RIGHT,
@@ -583,10 +627,10 @@ def show_checkpoints(screen, checkpoints):
 checkpoints = []
 CHECKPOINT_WIDTH = DEFAULT_MAX_VEL*2
 checkpoints.append(Checkpoint((1300, 130, CHECKPOINT_WIDTH, 220), 270, True))
-checkpoints.append(Checkpoint((0, 320, 400, CHECKPOINT_WIDTH), 0))
-checkpoints.append(Checkpoint((1230, 500, 280, CHECKPOINT_WIDTH), 0))
-checkpoints.append(Checkpoint((0, 780, 360, CHECKPOINT_WIDTH), 180))
-checkpoints.append(Checkpoint((1540, 800, 380, CHECKPOINT_WIDTH), 180))
+checkpoints.append(Checkpoint((0, 320, 400, CHECKPOINT_WIDTH), 0, False))
+checkpoints.append(Checkpoint((1230, 500, 280, CHECKPOINT_WIDTH), 0, False))
+checkpoints.append(Checkpoint((0, 780, 360, CHECKPOINT_WIDTH), 180, False))
+checkpoints.append(Checkpoint((1540, 800, 380, CHECKPOINT_WIDTH), 180, False))
 
 # cars setup
 car1 = Car('car.png', 800, 180, 35, 70, 0, 270,
