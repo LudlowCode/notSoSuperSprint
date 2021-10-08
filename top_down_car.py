@@ -7,7 +7,7 @@ import random
 import time
 import copy
 import pygame.joystick
-#from icecream import ic
+#from icecream import ic #ice cream good for testing prints IIRC
 
 from pygame.locals import *
 fullscreen_mode = True
