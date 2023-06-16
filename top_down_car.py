@@ -256,15 +256,18 @@ class Car(CollideItem):
         Args:
             display (pygame.Surface): The surface to check the pixel colour of at the position of the car's rect.center
         """
-        pixel_colour = display.get_at(
-            (int(self.rect.center[0]), int(self.rect.center[1])))
-        red = pixel_colour[0]
-        green = pixel_colour[1]
-        blue = pixel_colour[2]
-        if not (red in range(GREY[0]-10, GREY[0]+11) and
-                green in range(GREY[1]-10, GREY[1]+11) and
-                blue in range(GREY[2]-10, GREY[2]+11)):
+        try:
+            pixel_colour = display.get_at((int(self.rect.center[0]), int(self.rect.center[1])))
+            red = pixel_colour[0]
+            green = pixel_colour[1]
+            blue = pixel_colour[2]
+            if not (red in range(GREY[0]-10, GREY[0]+11) and
+                    green in range(GREY[1]-10, GREY[1]+11) and
+                    blue in range(GREY[2]-10, GREY[2]+11)):
+                self.velocity = 1
+        except : #error probably means you're off the screen
             self.velocity = 1
+        
 
     def check_checkpoints(self, race_time: int, race):
         """Update checkpoints for this car
@@ -361,6 +364,7 @@ def start_game_loop(screen, race, cars):
             if hasattr(event, 'key'):
                 if event.key == pygame.K_ESCAPE:
                     print("Bye")
+                    pygame.quit()
                     sys.exit(0)     # Escape to quit the game
                 elif event.key == pygame.K_DELETE:
                     pause()         # Delet to pause (escape to unpause)
@@ -376,8 +380,8 @@ def start_game_loop(screen, race, cars):
                 if not sprite.do_collision(car):
                     car.do_track_colour_based_update(SCREEN)
 
-        # for debugging. TODO comment out or make better
-        show_checkpoints(SCREEN, race.track.checkpoints)
+        
+        #show_checkpoints(SCREEN, race.track.checkpoints) # for debugging. TODO comment out or make better
 
         # do other car logic like hitting other cars, reacting to controls, checking whether passed through
         # checkpoints, updating position and direction, and blitting the rotated car to screen.
